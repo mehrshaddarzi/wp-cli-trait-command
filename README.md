@@ -1,5 +1,9 @@
 # WP-CLI Trait Package Command
 
+![Packagist](https://img.shields.io/github/license/mehrshaddarzi/wp-cli-trait-command)
+![Packagist Version](https://img.shields.io/github/v/release/mehrshaddarzi/wp-cli-trait-command)
+![GitHub repo size](https://img.shields.io/github/repo-size/mehrshaddarzi/wp-cli-trait-command)
+
 Generate plugin or php model files e.g. post-type or taxonomy for [WP-Trait](https://github.com/mehrshaddarzi/wp-trait) Package in Develop WordPress Plugin.
 
 ## Installation
