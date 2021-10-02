@@ -1,0 +1,34 @@
+# Load Package
+require_once dirname(__FILE__) . '/vendor/autoload.php';
+{{define_namespace}}
+# Define Class
+class {{plugin_class}} extends \WPTrait\Plugin
+{
+
+    public function __construct($slug, $args = [])
+    {
+        parent::__construct($slug, $args);
+    }
+
+    public function instantiate()
+    {
+
+    }
+
+    public function register_activation_hook()
+    {
+
+    }
+
+    public function register_deactivation_hook()
+    {
+
+    }
+
+    public static function register_uninstall_hook()
+    {
+
+    }
+}
+
+new {{plugin_class}}('{{plugin_slug}}');

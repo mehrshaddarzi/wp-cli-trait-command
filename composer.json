@@ -1,0 +1,48 @@
+{
+  "name": "mehrshaddarzi/wp-cli-trait-command",
+  "description": "WP-CLI Trait Package Command.",
+  "type": "wp-cli-package",
+  "homepage": "https://github.com/mehrshaddarzi/wp-cli-trait-command",
+  "license": "MIT",
+  "keywords": [
+    "cli",
+    "wordpress",
+    "wp-cli"
+  ],
+  "authors": [
+    {
+      "name": "Mehrshad Darzi",
+      "email": "mehrshad198@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "": "src/"
+    },
+    "files": [
+      "command.php"
+    ]
+  },
+  "require": {
+    "php": "^5.6 || ^7.0 || ^8.0",
+    "wp-packagist/wp-cli-helper": ">=1.0.2",
+    "ext-json": "*"
+  },
+  "require-dev": {
+    "wp-cli/wp-cli": "^2.0",
+    "phpunit/phpunit": "^4.8"
+  },
+  "extra": {
+    "commands": [
+      "trait",
+      "trait start",
+      "trait make"
+    ]
+  },
+  "support": {
+    "issues": "https://github.com/mehrshaddarzi/wp-cli-trait-command/issues"
+  },
+  "scripts": {
+    "test": "phpunit"
+  }
+}

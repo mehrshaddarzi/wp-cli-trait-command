@@ -1,0 +1,12 @@
+theme: jekyll-theme-cayman
+title: WP-CLI Global Configuration Command
+description: 
+logo: ''
+show_downloads: true
+plugins:
+  - jekyll-relative-links
+relative_links:
+  enabled: true
+  collections: true
+include:
+  - README.md

@@ -1,0 +1,13 @@
+<?php
+{{define_namespace}}
+use WPTrait\Admin\PostType;
+
+class {{class}} extends PostType
+{
+
+    public function __construct($slug, $name, $args = [], $plugin = [])
+    {
+        parent::__construct($slug, $name, $args, $plugin);
+    }
+
+}
