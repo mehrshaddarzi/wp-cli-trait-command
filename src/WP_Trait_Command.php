@@ -229,6 +229,15 @@ class WP_Trait_Command extends WP_CLI_Command
      * <src>
      * : Source of file
      *
+     * [<slug>]
+     * : Post-type or Taxonomy Slug
+     *
+     * [<name>]
+     * : Post-type or Taxonomy Singular Name
+     *
+     * [--var=<var>]
+     * : Variable of Class
+     *
      * ## EXAMPLES
      *
      *      # Create Model
@@ -245,63 +254,244 @@ class WP_Trait_Command extends WP_CLI_Command
      */
     public function make($_, $assoc)
     {
-        //Check local or global config file
-        $type = (isset($assoc['local']) ? 'local' : 'global');
-
-        //Load WP-CLI-CONFIG class
-        $wp_cli_config = new WP_CLI_CONFIG($type);
-
-        //Load config File
-        $current_config = $wp_cli_config->load_config_file();
-
-        //sanitize value
-        $key = $_[0];
-
-        //check nested
-        if (stristr($_[0], ":") != false) {
-            $exp = explode(":", $_[0]);
-            $exp = array_filter(
-                $exp,
-                function ($value) {
-                    return $value !== '';
-                }
-            );
-
-            $count = count($exp);
-            if ($count == 2) {
-                if (isset($current_config[$exp[0]][$exp[1]])) {
-                    unset($current_config[$exp[0]][$exp[1]]);
-                } else {
-                    $error = true;
-                }
-            } elseif ($count == 3) {
-                if (isset($current_config[$exp[0]][$exp[1]][$exp[2]])) {
-                    unset($current_config[$exp[0]][$exp[1]][$exp[2]]);
-                } else {
-                    $error = true;
-                }
-            } elseif ($count == 4) {
-                if (isset($current_config[$exp[0]][$exp[1]][$exp[2]][$exp[3]])) {
-                    unset($current_config[$exp[0]][$exp[1]][$exp[2]][$exp[3]]);
-                } else {
-                    $error = true;
-                }
-            }
-
-            if (isset($error)) {
-                WP_CLI::error("The " . WP_CLI_Helper::color($key, "Y") . " parameter not found.");
-            }
-        } elseif (isset($current_config[$key])) {
-            unset($current_config[$key]);
-        } else {
-            WP_CLI::error("The " . WP_CLI_Helper::color($key, "Y") . " parameter not found.");
+        # Check Json File in Path
+        if (file_exists(\WP_CLI_Util::getcwd('wp-config.php'))) {
+            \WP_CLI::error("You seem to be running the command in the root of WordPress.\nplease change the directory of your terminal to your Plugin directory.");
         }
 
-        if ($wp_cli_config->save_config_file($current_config)) {
-            WP_CLI::success("Removed " . WP_CLI_Helper::color($_[0], "Y") . " config.");
-        } else {
-            WP_CLI::error("Failed to update the config yaml file.");
+        # Composer.Json File
+        $composer = \WP_CLI_Util::getcwd('composer.json');
+        if (!file_exists($composer)) {
+            \WP_CLI::error("composer.json file not found");
         }
+
+        # Read Json File
+        $json = \WP_CLI_FileSystem::read_json_file($composer);
+        if ($json === false) {
+            \WP_CLI::error("composer.json file syntax is wrong.");
+        }
+
+        # Check Plugin Main File
+        $current_dir = \WP_CLI_Util::getcwd();
+        $plugin_dir = basename($current_dir);
+        $plugin_main_file = $current_dir . '/' . $plugin_dir . '.php';
+        if (!file_exists($plugin_main_file)) {
+            \WP_CLI::error("the plugin main file is not found. `" .
+                \WP_CLI_Helper::color($plugin_dir . '/' . $plugin_dir . '.php', "Y") . "`");
+        }
+
+        # Sanitize To str to lower
+        $json = array_change_key_case($json, CASE_LOWER);
+
+        # Check Not Found Trait Package
+        if (!isset($json["require"]["mehrshaddarzi/wp-trait"])) {
+            \WP_CLI::error("wp-trait package is not installed in your composer.json file.");
+        }
+
+        # Check Autoload
+        if (!isset($json['autoload'])) {
+            \WP_CLI::error("autoload is not found in your composer.json file.");
+        }
+
+        # Check PSR-4
+        $autoload = array_change_key_case($json['autoload'], CASE_LOWER);
+        if (!isset($autoload['psr-4'])) {
+            \WP_CLI::error("psr-4 autoload is not found in your composer.json file.");
+        }
+
+        # Get NameSpace
+        $namespace = rtrim(key($autoload['psr-4']), "\\");
+        $folder = reset($autoload['psr-4']);
+        $srcDir = \WP_CLI_Util::getcwd($folder);
+
+        # Check Class
+        $class = preg_replace('#^/#', '', str_ireplace("\\", "/", trim($_[1], "/")));
+        $explode_class = array_filter(explode("/", $class));
+
+        # Check Variable
+        if (isset($assoc['var']) and !empty($assoc['var'])) {
+            $variable = trim($assoc['var']);
+        } else {
+            $variable = end($explode_class);
+        }
+
+        # Generate NameSpace
+        $namespace_text = 'namespace ';
+        if (count($explode_class) < 2) {
+            $namespace_text .= $namespace . ';';
+        } else {
+            # Generate Namespace
+            $_list = $explode_class;
+            array_pop($_list);
+            $namespace_text .= $namespace;
+            foreach ($_list as $folder_name) {
+                $namespace_text .= '\\' . $folder_name;
+            }
+
+            $namespace_text .= ';';
+        }
+
+        # Check Directory Of Class
+        $mkdir = $srcDir;
+        if (count($explode_class) > 1) {
+
+            # Generate Folder
+            $_list = $explode_class;
+            array_pop($_list);
+            foreach ($_list as $folder_name) {
+                $mkdir = rtrim($mkdir, "/") . '/' . $folder_name . '/';
+            }
+        }
+
+        # File Name
+        $php_file = end($explode_class) . '.php';
+        $php_full_path = rtrim($mkdir, "/") . '/' . $php_file;
+        if (file_exists($php_full_path)) {
+            \WP_CLI::error("The php file is exists. `" . \WP_CLI_Helper::color($php_full_path, "Y") . "`");
+        }
+
+        # Post-Type or Taxonomy Slug
+        $slug = strtolower(end($explode_class));
+        $singular_name = ucfirst(end($explode_class));
+        if (in_array($_[0], ['post-type', 'taxonomy'])) {
+            if (isset($_[2]) and !empty($_[2])) {
+                $slug = trim($_[2]);
+            }
+
+            if (isset($_[3]) and !empty($_[3])) {
+                $singular_name = trim($_[3]);
+            }
+        }
+
+        # Load Mustache
+        $mustache = \WP_CLI_FileSystem::load_mustache(WP_CLI_TRAIT_TEMPLATE_PATH);
+
+        # Create Model File
+        $text = $mustache->render($_[0], [
+            'namespace' => $namespace_text,
+            'class' => end($explode_class),
+        ]);
+
+        # Created File
+        $create_php = \WP_CLI_FileSystem::file_put_content($mkdir . '/' . $php_file, $text);
+        if (isset($create_php['status']) and $create_php['status'] === false) {
+            \WP_CLI::error($create_php['message']);
+        }
+
+        # Add Variable to Main Class
+        $addVariable = $this->addVariableToMainClass(
+            strtolower($_[0]),
+            $plugin_main_file,
+            $namespace,
+            $this->sanitizeVariableName($variable),
+            $explode_class,
+            $slug,
+            $singular_name,
+            $plugin_dir
+        );
+        if ($addVariable === false) {
+            @unlink($mkdir . '/' . $php_file);
+            \WP_CLI::error("Error adding variable in main plugin file.");
+        }
+
+        # Return Success
+        \WP_CLI::success("Created `" . \WP_CLI_Helper::color(end($explode_class), "Y") . "` " . $_[0] . ".");
+    }
+
+    protected function addVariableToMainClass($type = 'model', $php_file = '', $namespace = '', $variable = '', $array = [], $slug = '', $singular_name = '', $plugin_slug = '')
+    {
+
+        # namespace
+        $namespace = '\\' . $namespace;
+        foreach ($array as $class) {
+            $namespace .= '\\' . $class;
+        }
+
+        # Generate Line
+        switch ($type) {
+            case "model":
+                $class_line = '        $this->' . $variable . ' = new ' . $namespace . '($this->plugin);' . "\n";
+                break;
+            case "post-type":
+                $class_line = '        $this->' . $variable . ' = new ' . $namespace . '("' . $slug . '", __("' . $singular_name . '", "' . $plugin_slug . '"), $args = [], $this->plugin);' . "\n";
+                break;
+            case "taxonomy":
+                $class_line = '        $this->' . $variable . ' = new ' . $namespace . '("' . $slug . '", __("' . $singular_name . '", "' . $plugin_slug . '"), $post_types = ["post"], $args = [], $this->plugin);' . "\n";
+                break;
+        }
+
+        # Get Main File
+        $file = file($php_file);
+        $instantiate = null;
+        foreach ($file as $line => $value) {
+            if (stristr($value, "function instantiate()") != false) {
+                $instantiate = $line;
+            }
+        }
+
+        # Get Last Line Of Method
+        $_line = null;
+        foreach ($file as $line => $value) {
+            if ($line > $instantiate and trim($value) == "}") {
+                $_line = $line;
+                break;
+            }
+        }
+
+        # Added
+        $_content = array();
+        foreach ($file as $line => $value) {
+            if ($line == $_line) {
+                $_content[] = $class_line;
+            }
+
+            $_content[] = $value;
+        }
+
+        # Save File
+        $_file_content = '';
+        foreach ($_content as $text) {
+            $_file_content .= $text;
+        }
+
+        $save = \WP_CLI_FileSystem::file_put_content(
+            $php_file,
+            $_file_content
+        );
+        if (isset($save['status']) and $save['status'] === false) {
+            return false;
+        }
+
+        return $save;
+    }
+
+    protected function sanitizeVariableName($variable)
+    {
+        $forbidden = [
+            'db',
+            'wp',
+            'plugin',
+            'pagenow',
+            'post',
+            'term',
+            'attachment',
+            'user',
+            'option',
+            'request',
+            'comment',
+            'nonce',
+            'transient',
+            'cache',
+            'event',
+            'error',
+            'rest',
+            'log'
+        ];
+        if (in_array($variable, $forbidden)) {
+            $variable = ucfirst($variable);
+        }
+
+        return str_ireplace([" ", "-"], "_", $variable);
     }
 
 }
