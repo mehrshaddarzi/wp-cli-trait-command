@@ -42,7 +42,7 @@ SUBCOMMANDS
 
 Use This Command:
 
-```
+```console
 wp trait start
 ```
 
@@ -67,7 +67,7 @@ And fill Your Plugin information e.g. slug and namespace:
 
 Create php model:
 
-```
+```console
 wp trait make model <class>
 ```
 
@@ -75,19 +75,19 @@ wp trait make model <class>
 
 #### Create Model With Class Name:
 
-```
+```console
 wp trait make model Option
 ```
 
 #### Create Model With Nested Namespace:
 
-```
+```console
 wp trait make model User/Register
 ```
 
 #### Create Model With Custom global Variable in Plugin:
 
-```
+```console
 wp trait make model User/Signup --var=register
 ```
 
@@ -95,13 +95,13 @@ wp trait make model User/Signup --var=register
 
 Make a new post-type in WordPress:
 
-```
+```console
 wp trait make post-type <class> <slug> <singular-name>
 ```
 
 #### Create A new Post Type With `City` slug:
 
-```
+```console
 wp trait make post-type City
 ```
 
@@ -109,7 +109,7 @@ After created You can change `register_post_type` argument in main plugin files.
 
 #### Create a new Post Type With Nested NameSpace:
 
-```
+```console
 wp trait make post-type Post/Orders order
 ```
 
@@ -117,13 +117,13 @@ wp trait make post-type Post/Orders order
 
 Make a new taxonomy in WordPress:
 
-```
+```console
 wp trait make taxonomy <class> <slug> <singular-name>
 ```
 
 #### Create A new Taxonomy With `Country` slug:
 
-```
+```console
 wp trait make taxonomy Country
 ```
 
@@ -131,7 +131,7 @@ After create You can change register_taxonomy argument in main plugin files.
 
 #### Create a new Taxonomy With Nested NameSpace and Custom name:
 
-```
+```console
 wp trait make taxonomy Media/Category media_cat Category
 ```
 
