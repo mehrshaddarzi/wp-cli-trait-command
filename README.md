@@ -78,7 +78,7 @@ wp trait make model Option
 #### Create Model With Nested Namespace:
 
 ```
-wp trait make User/Register
+wp trait make model User/Register
 ```
 
 #### Create Model With Custom global Variable in Plugin:
