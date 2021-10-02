@@ -54,8 +54,8 @@ And fill Your Plugin information e.g. slug and namespace:
 3/12 [--plugin_name=<title>]: plugin-name
 4/12 [--plugin_description=<description>]: q
 5/12 [--plugin_author=<author>]: Mehrshad Darzi
-6/12 [--plugin_author_uri=<url>]: https://github.com
-7/12 [--plugin_uri=<url>]: http://github.com
+6/12 [--plugin_author_uri=<url>]: https://profiles.wordpress.org/mehrshaddarzi/
+7/12 [--plugin_uri=<url>]: https://github.com/mehrshaddarzi/wp-trait
 8/12 [--skip-tests] (Y/n): n
 9/12 [--ci=<provider>]: travis
 10/12 [--activate] (Y/n): y
