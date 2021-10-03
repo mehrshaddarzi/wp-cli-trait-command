@@ -485,7 +485,8 @@ class WP_Trait_Command extends WP_CLI_Command
             'event',
             'error',
             'rest',
-            'log'
+            'log',
+            'route'
         ];
         if (in_array($variable, $forbidden)) {
             $variable = ucfirst($variable);
