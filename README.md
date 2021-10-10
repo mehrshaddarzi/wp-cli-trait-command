@@ -52,7 +52,7 @@ And fill Your Plugin information e.g. slug and namespace:
 1/12 [--slug=<slug>]: wp-plugin
 2/12 [--namespace=<namespace>]: WP_Plugin
 3/12 [--plugin_name=<title>]: plugin-name
-4/12 [--plugin_description=<description>]: q
+4/12 [--plugin_description=<description>]: your plugin description
 5/12 [--plugin_author=<author>]: Mehrshad Darzi
 6/12 [--plugin_author_uri=<url>]: https://profiles.wordpress.org/mehrshaddarzi/
 7/12 [--plugin_uri=<url>]: https://github.com/mehrshaddarzi/wp-trait
