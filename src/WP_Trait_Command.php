@@ -489,7 +489,8 @@ class WP_Trait_Command extends WP_CLI_Command
             'route',
             'filter',
             'action',
-            'cookie'
+            'cookie',
+            'response'
         ];
         if (in_array($variable, $forbidden)) {
             $variable = ucfirst($variable);
