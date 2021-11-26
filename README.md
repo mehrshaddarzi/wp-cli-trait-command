@@ -34,8 +34,10 @@ SYNOPSIS
 
 SUBCOMMANDS
 
-  start       Generate New Plugin With Wp-trait Structure
-  make        Make PHP Model file
+  add         Add Custom Package.
+  make        Generate Model Files.
+  remove      Remove Custom Package.
+  start       Generates starter code for a plugin
 ```
 
 ### Generate Plugin
@@ -134,6 +136,24 @@ After create You can change register_taxonomy argument in main plugin files.
 ```console
 wp trait make taxonomy Media/Category media_cat Category
 ```
+
+### Add or Remove Package
+
+```console
+wp trait add <package>
+```
+
+```console
+wp trait remove <package>
+```
+
+#### List Of Trait Package
+
+| package    | description                                                               |
+|------------|---------------------------------------------------------------------------|
+| ide-helper | Create WP-Trait method helper for developer in IDE software e.g. PHPStorm |
+| cmb2       | Add [CMB2](https://github.com/CMB2/CMB2) Framework to your plugin         |
+
 
 ## Author
 
