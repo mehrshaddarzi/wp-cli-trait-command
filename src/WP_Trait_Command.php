@@ -254,50 +254,11 @@ class WP_Trait_Command extends WP_CLI_Command
      */
     public function make($_, $assoc)
     {
-        # Check Json File in Path
-        if (file_exists(\WP_CLI_Util::getcwd('wp-config.php'))) {
-            \WP_CLI::error("You seem to be running the command in the root of WordPress.\nplease change the directory of your terminal to your Plugin directory.");
-        }
-
-        # Composer.Json File
-        $composer = \WP_CLI_Util::getcwd('composer.json');
-        if (!file_exists($composer)) {
-            \WP_CLI::error("composer.json file not found");
-        }
-
-        # Read Json File
-        $json = \WP_CLI_FileSystem::read_json_file($composer);
-        if ($json === false) {
-            \WP_CLI::error("composer.json file syntax is wrong.");
-        }
-
-        # Check Plugin Main File
-        $current_dir = \WP_CLI_Util::getcwd();
-        $plugin_dir = basename($current_dir);
-        $plugin_main_file = $current_dir . '/' . $plugin_dir . '.php';
-        if (!file_exists($plugin_main_file)) {
-            \WP_CLI::error("the plugin main file is not found. `" .
-                \WP_CLI_Helper::color($plugin_dir . '/' . $plugin_dir . '.php', "Y") . "`");
-        }
-
-        # Sanitize To str to lower
-        $json = array_change_key_case($json, CASE_LOWER);
-
-        # Check Not Found Trait Package
-        if (!isset($json["require"]["mehrshaddarzi/wp-trait"])) {
-            \WP_CLI::error("wp-trait package is not installed in your composer.json file.");
-        }
-
-        # Check Autoload
-        if (!isset($json['autoload'])) {
-            \WP_CLI::error("autoload is not found in your composer.json file.");
-        }
-
-        # Check PSR-4
-        $autoload = array_change_key_case($json['autoload'], CASE_LOWER);
-        if (!isset($autoload['psr-4'])) {
-            \WP_CLI::error("psr-4 autoload is not found in your composer.json file.");
-        }
+        # Check Trait Package
+        $Trait = $this->checkTraitPackage();
+        $autoload = $Trait['autoload'];
+        $plugin_main_file = $Trait['plugin_main_file'];
+        $plugin_dir = $Trait['plugin_dir'];
 
         # Get NameSpace
         $namespace = rtrim(key($autoload['psr-4']), "\\");
@@ -398,6 +359,63 @@ class WP_Trait_Command extends WP_CLI_Command
         \WP_CLI::success("Created `" . \WP_CLI_Helper::color(end($explode_class), "Y") . "` " . $_[0] . ".");
     }
 
+    protected function checkTraitPackage()
+    {
+
+        # Check Json File in Path
+        if (file_exists(\WP_CLI_Util::getcwd('wp-config.php'))) {
+            \WP_CLI::error("You seem to be running the command in the root of WordPress.\nplease change the directory of your terminal to your Plugin directory.");
+        }
+
+        # Composer.Json File
+        $composer = \WP_CLI_Util::getcwd('composer.json');
+        if (!file_exists($composer)) {
+            \WP_CLI::error("composer.json file not found");
+        }
+
+        # Read Json File
+        $json = \WP_CLI_FileSystem::read_json_file($composer);
+        if ($json === false) {
+            \WP_CLI::error("composer.json file syntax is wrong.");
+        }
+
+        # Check Plugin Main File
+        $current_dir = \WP_CLI_Util::getcwd();
+        $plugin_dir = basename($current_dir);
+        $plugin_main_file = $current_dir . '/' . $plugin_dir . '.php';
+        if (!file_exists($plugin_main_file)) {
+            \WP_CLI::error("the plugin main file is not found. `" .
+                \WP_CLI_Helper::color($plugin_dir . '/' . $plugin_dir . '.php', "Y") . "`");
+        }
+
+        # Sanitize To str to lower
+        $json = array_change_key_case($json, CASE_LOWER);
+
+        # Check Not Found Trait Package
+        if (!isset($json["require"]["mehrshaddarzi/wp-trait"])) {
+            \WP_CLI::error("wp-trait package is not installed in your composer.json file.");
+        }
+
+        # Check Autoload
+        if (!isset($json['autoload'])) {
+            \WP_CLI::error("autoload is not found in your composer.json file.");
+        }
+
+        # Check PSR-4
+        $autoload = array_change_key_case($json['autoload'], CASE_LOWER);
+        if (!isset($autoload['psr-4'])) {
+            \WP_CLI::error("psr-4 autoload is not found in your composer.json file.");
+        }
+
+        return [
+            'json' => $json,
+            'autoload' => $autoload,
+            'current_dir' => $current_dir,
+            'plugin_dir' => $plugin_dir,
+            'plugin_main_file' => $plugin_main_file
+        ];
+    }
+
     protected function addVariableToMainClass($type = 'model', $php_file = '', $namespace = '', $variable = '', $array = [], $slug = '', $singular_name = '', $plugin_slug = '')
     {
 
@@ -407,11 +425,9 @@ class WP_Trait_Command extends WP_CLI_Command
             $namespace .= '\\' . $class;
         }
 
-        # Generate Line
+        # Generate Object Line
+        $class_line = '        $this->' . $variable . ' = new ' . $namespace . '($this->plugin);' . "\n";
         switch ($type) {
-            case "model":
-                $class_line = '        $this->' . $variable . ' = new ' . $namespace . '($this->plugin);' . "\n";
-                break;
             case "post-type":
                 $class_line = '        $this->' . $variable . ' = new ' . $namespace . '("' . $slug . '", __("' . $singular_name . '", "' . $plugin_slug . '"), $args = [], $this->plugin);' . "\n";
                 break;
@@ -420,12 +436,23 @@ class WP_Trait_Command extends WP_CLI_Command
                 break;
         }
 
+        # Generate Property
+        $property = "    public $" . $variable . ";\n";
+
         # Get Main File
         $file = file($php_file);
         $instantiate = null;
+        $public_variable = null;
         foreach ($file as $line => $value) {
+
+            # Get For Add Object Class
             if (stristr($value, "function instantiate()") != false) {
                 $instantiate = $line;
+            }
+
+            # Get For Add public Variable
+            if (stristr($value, "public function __construct") != false) {
+                $public_variable = $line - 1;
             }
         }
 
@@ -438,9 +465,15 @@ class WP_Trait_Command extends WP_CLI_Command
             }
         }
 
-        # Added
+        # Added Items
         $_content = array();
         foreach ($file as $line => $value) {
+            # Add Property
+            if ($line == $public_variable) {
+                $_content[] = $property;
+            }
+
+            # Add Class Object
             if ($line == $_line) {
                 $_content[] = $class_line;
             }
@@ -448,12 +481,13 @@ class WP_Trait_Command extends WP_CLI_Command
             $_content[] = $value;
         }
 
-        # Save File
+        # Replace Content
         $_file_content = '';
         foreach ($_content as $text) {
             $_file_content .= $text;
         }
 
+        # Save File
         $save = \WP_CLI_FileSystem::file_put_content(
             $php_file,
             $_file_content
@@ -500,4 +534,246 @@ class WP_Trait_Command extends WP_CLI_Command
         return str_ireplace([" ", "-"], "_", $variable);
     }
 
+    /**
+     * Add Custom Package.
+     *
+     * ## OPTIONS
+     *
+     * <name>
+     * : Name of package
+     *
+     * ## EXAMPLES
+     *
+     *      # Add ide-helper Class e.g. PHPStorm
+     *      $ wp trait add ide-helper
+     *      Success: Added ide-helper.
+     *
+     *      # add CMB2 to Plugin
+     *      $ wp trait add cmb2
+     *      Success: Added CMB2.
+     */
+    public function add($_, $assoc)
+    {
+        # Check Trait Package
+        $Trait = $this->checkTraitPackage();
+
+        # Package List
+        $_package = $this->packageList();
+
+        # Check Package
+        $package = strtolower($_[0]);
+        if (!isset($_package[$package])) {
+            \WP_CLI::error("The package name is not valid");
+        }
+
+        # Create ide-helper
+        switch ($package) {
+            case "ide-helper":
+                $this->add_ide_helper($Trait);
+                break;
+            case "cmb2":
+                $this->add_cmb2($Trait);
+                break;
+        }
+
+        # Return Success
+        \WP_CLI::success("Added " . \WP_CLI_Helper::color($_package[$package]['title'], "Y") . ".");
+    }
+
+    /**
+     * Remove Custom Package.
+     *
+     * ## OPTIONS
+     *
+     * <name>
+     * : Name of package
+     *
+     * ## EXAMPLES
+     *
+     *      # Remove ide-helper Class e.g. PHPStorm
+     *      $ wp trait remove ide-helper
+     *      Success: Removed ide-helper.
+     *
+     *      # Remove CMB2 to Plugin
+     *      $ wp trait remove cmb2
+     *      Success: Removed CMB2.
+     */
+    public function remove($_, $assoc)
+    {
+        # Check Trait Package
+        $Trait = $this->checkTraitPackage();
+
+        # Package List
+        $_package = $this->packageList();
+
+        # Check Package
+        $package = strtolower($_[0]);
+        if (!isset($_package[$package])) {
+            \WP_CLI::error("The package name is not valid");
+        }
+
+        # Create ide-helper
+        switch ($package) {
+            case "ide-helper":
+                $this->remove_ide_helper($Trait);
+                break;
+            case "cmb2":
+                $this->remove_cmb2($Trait);
+                break;
+        }
+
+        # Return Success
+        \WP_CLI::success("Removed " . \WP_CLI_Helper::color($_package[$package]['title'], "Y") . ".");
+    }
+
+    protected function packageList()
+    {
+        return
+            [
+                'ide-helper' => ['title' => 'IDE-Helper'],
+                'cmb2' => ['title' => 'CMB2']
+            ];
+    }
+
+    protected function add_ide_helper($Trait)
+    {
+        # Remove If ide-helper is exist
+        $ide_helper_file = $Trait['current_dir'] . '/ide-helper.php';
+        if (file_exists($ide_helper_file)) {
+            @unlink($ide_helper_file);
+        }
+
+        # Plugin Slug
+        $slug = str_ireplace("-", "_", trim(basename($Trait['current_dir'])));
+        $php_file = $Trait['current_dir'] . '/' . trim(basename($Trait['current_dir'])) . '.php';
+
+        # Generate again File
+        $mustache = \WP_CLI_FileSystem::load_mustache(WP_CLI_TRAIT_TEMPLATE_PATH);
+        $text = $mustache->render('ide-helper', [
+            'plugin_slug' => $slug
+        ]);
+        $create_php = \WP_CLI_FileSystem::file_put_content($ide_helper_file, $text);
+        if (isset($create_php['status']) and $create_php['status'] === false) {
+            \WP_CLI::error($create_php['message']);
+        }
+
+        # Create Property
+        $file = file($php_file);
+        $_file_content = '';
+        $_line = false;
+        foreach ($file as $line => $value) {
+            if (substr(trim($value), 0, 3) == "new") {
+                $_file_content .= '$' . $slug . ' = ' . $value;
+                $_line = true;
+            } else {
+                $_file_content .= $value;
+            }
+        }
+        if ($_line === true) {
+            $save = \WP_CLI_FileSystem::file_put_content(
+                $php_file,
+                $_file_content
+            );
+            if (isset($save['status']) and $save['status'] === false) {
+                \WP_CLI::error($save['message']);
+            }
+        }
+
+        return true;
+    }
+
+    protected function remove_ide_helper($Trait)
+    {
+        # Remove If ide-helper is exist
+        $ide_helper_file = $Trait['current_dir'] . '/ide-helper.php';
+        if (file_exists($ide_helper_file)) {
+            @unlink($ide_helper_file);
+        }
+
+        # Plugin Slug
+        $slug = str_ireplace("-", "_", trim(basename($Trait['current_dir'])));
+        $php_file = $Trait['current_dir'] . '/' . trim(basename($Trait['current_dir'])) . '.php';
+
+        # Create Property
+        $file = file($php_file);
+        $_file_content = '';
+        $_line = false;
+        foreach ($file as $line => $value) {
+            $prefix = '$' . $slug . ' = ';
+            if (stristr($value, $prefix) != false) {
+                $explode = explode("=", $value);
+                $_file_content .= trim($explode[1]);
+                $_line = true;
+            } else {
+                $_file_content .= $value;
+            }
+        }
+        if ($_line === true) {
+            $save = \WP_CLI_FileSystem::file_put_content(
+                $php_file,
+                $_file_content
+            );
+            if (isset($save['status']) and $save['status'] === false) {
+                \WP_CLI::error($save['message']);
+            }
+        }
+
+        return true;
+    }
+
+    protected function add_cmb2($Trait)
+    {
+        $composer = $Trait['json'];
+
+        # Add require
+        # @see https://github.com/CMB2/CMB2/wiki/Installation#if-including-the-library-via-composer-in-psr-4-format-example-antonella-framework
+        if (isset($composer['require']['cmb2/cmb2'])) {
+            \WP_CLI::error('The CMB2 is currently installed.');
+        }
+        $composer['require']['cmb2/cmb2'] = 'dev-master';
+
+        # Add Files
+        $composer['autoload']['files'][] = 'vendor/cmb2/cmb2/init.php';
+
+        # Save Composer File
+        $saved = \WP_CLI_FileSystem::create_json_file($Trait['current_dir'] . '/composer.json', $composer, $JSON_PRETTY = true);
+        if ($saved === false) {
+            \WP_CLI::error('composer.json file not saved');
+        }
+
+        # Run composer Update
+        \WP_CLI_Helper::run_composer($Trait['current_dir'], array('update'));
+    }
+
+    protected function remove_cmb2($Trait)
+    {
+        $composer = $Trait['json'];
+
+        # Remove require
+        if (!isset($composer['require']['cmb2/cmb2'])) {
+            \WP_CLI::error('The CMB2 is not currently installed.');
+        }
+        unset($composer['require']['cmb2/cmb2']);
+
+        # Remove Files
+        if (isset($composer['autoload']['files'])) {
+            if (($key = array_search('vendor/cmb2/cmb2/init.php', $composer['autoload']['files'])) !== false) {
+                unset($composer['autoload']['files'][$key]);
+            }
+        }
+
+        # Check Empty Files
+        if (empty($composer['autoload']['files'])) {
+            unset($composer['autoload']['files']);
+        }
+
+        # Save Composer File
+        $saved = \WP_CLI_FileSystem::create_json_file($Trait['current_dir'] . '/composer.json', $composer, $JSON_PRETTY = true);
+        if ($saved === false) {
+            \WP_CLI::error('composer.json file not saved');
+        }
+
+        # Run composer Update
+        \WP_CLI_Helper::run_composer($Trait['current_dir'], array('update'));
+    }
 }
