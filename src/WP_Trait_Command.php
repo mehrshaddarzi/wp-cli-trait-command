@@ -525,7 +525,8 @@ class WP_Trait_Command extends WP_CLI_Command
             'action',
             'cookie',
             'response',
-            'file'
+            'file',
+            'password'
         ];
         if (in_array($variable, $forbidden)) {
             $variable = ucfirst($variable);
