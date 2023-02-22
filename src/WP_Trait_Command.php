@@ -437,7 +437,7 @@ class WP_Trait_Command extends WP_CLI_Command
         }
 
         # Generate Property
-        $property = "    public $" . $variable . ";\n";
+        $property = "    public $namespace $" . $variable . ";\n";
 
         # Get Main File
         $file = file($php_file);
