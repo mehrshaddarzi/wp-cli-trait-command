@@ -429,10 +429,10 @@ class WP_Trait_Command extends WP_CLI_Command
         $class_line = '        $this->' . $variable . ' = new ' . $namespace . '($this->plugin);' . "\n";
         switch ($type) {
             case "post-type":
-                $class_line = '        $this->' . $variable . ' = new ' . $namespace . '("' . $slug . '", __("' . $singular_name . '", "' . $plugin_slug . '"), $args = [], $this->plugin);' . "\n";
+                $class_line = '        $this->' . $variable . ' = new ' . $namespace . '($this->plugin, "' . $slug . '", __("' . $singular_name . '", "' . $plugin_slug . '"), $args = []);' . "\n";
                 break;
             case "taxonomy":
-                $class_line = '        $this->' . $variable . ' = new ' . $namespace . '("' . $slug . '", __("' . $singular_name . '", "' . $plugin_slug . '"), $post_types = ["post"], $args = [], $this->plugin);' . "\n";
+                $class_line = '        $this->' . $variable . ' = new ' . $namespace . '($this->plugin, "' . $slug . '", __("' . $singular_name . '", "' . $plugin_slug . '"), $post_types = ["post"], $args = []);' . "\n";
                 break;
         }
 
